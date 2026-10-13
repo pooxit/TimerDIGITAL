@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timer & Alarm Premium</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Playfair+Display:ital,wght@0,600;1,600&display=swap');
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+            color: #e2e8f0;
+        }
+
+        .font-serif {
+            font-family: 'Playfair Display', serif;
+        }
+
+        /* Glassmorphism Effect */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Premium Input Styling */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.8) 100%);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.1);
+        }
+
+        /* Custom Gold/Bronze Accent */
+        .text-gold {
+            color: #d4af37; /* Metallic Gold */
+        }
+        .bg-gold {
+            background-color: #d4af37;
+        }
+        .border-gold {
+            border-color: #d4af37;
+        }
+        .shadow-gold {
+            box-shadow: 0 10px 25px -5px rgba(212, 175, 55, 0.3);
+        }
+        .gradient-gold-text {
+            background: linear-gradient(to right, #bf953f, #fcf6ba, #b38728, #fbf5b7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Pulsing animation for active alarm */
+        @keyframes alarmGlow {
+            0% { box-shadow: 0 0 20px rgba(220, 38, 38, 0.3); background-color: rgba(220, 38, 38, 0.9); }
+            50% { box-shadow: 0 0 50px rgba(220, 38, 38, 0.8); background-color: rgba(185, 28, 28, 0.95); }
+            100% { box-shadow: 0 0 20px rgba(220, 38, 38, 0.3); background-color: rgba(220, 38, 38, 0.9); }
+        }
+        .bg-alarm-active {
+            animation: alarmGlow 2s infinite;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col items-center justify-center selection:bg-yellow-600 selection:text-white">
+
+    <!-- Header Waktu Saat Ini -->
+    <div class="absolute top-8 w-full text-center z-10 flex flex-col items-center">
+        <p class="text-slate-400/70 text-xs font-semibold tracking-[0.2em] uppercase mb-2">Waktu Lokal</p>
+        <div class="glass-panel px-6 py-2 rounded-full inline-block">
+            <h2 id="liveClock" class="text-2xl font-light tracking-widest text-slate-200">00:00:00</h2>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="glass-panel p-10 rounded-[2.5rem] flex flex-col items-center w-[92%] max-w-lg relative z-10 transition-all duration-500">
+        
+        <!-- View 1: Setup Timer -->
+        <div id="setupView" class="w-full flex flex-col items-center">
+            <h1 class="text-3xl md:text-4xl font-serif gradient-gold-text mb-3 text-center">Set Timer</h1>
+            <p class="text-sm text-slate-400 mb-10 text-center font-light">Tentukan durasi untuk memulai sesi Anda.</p>
+            
+            <div class="flex items-center justify-center gap-6 mb-8">
+                <!-- Input Jam -->
+                <div class="flex flex-col items-center group">
+                    <div class="relative">
+                        <input type="number" id="hourInp" min="0" max="99" placeholder="00" 
+                            class="w-28 h-32 text-6xl text-center text-slate-100 rounded-3xl border border-slate-600 focus:border-yellow-600 focus:ring-1 focus:ring-yellow-600/50 outline-none transition-all font-light">
+                    </div>
+                    <span class="text-xs font-medium text-slate-500 mt-4 tracking-widest uppercase">Jam</span>
+                </div>
+                
+                <div class="flex flex-col justify-center h-32">
+                    <span class="text-4xl text-slate-600 font-light mb-8 animate-pulse">:</span>
+                </div>
+                
+                <!-- Input Menit -->
+                <div class="flex flex-col items-center group">
+                    <div class="relative">
+                        <input type="number" id="minInp" min="0" max="59" placeholder="00" 
+                            class="w-28 h-32 text-6xl text-center text-slate-100 rounded-3xl border border-slate-600 focus:border-yellow-600 focus:ring-1 focus:ring-yellow-600/50 outline-none transition-all font-light">
+                    </div>
+                    <span class="text-xs font-medium text-slate-500 mt-4 tracking-widest uppercase">Menit</span>
+                </div>
+            </div>
+
+            <!-- Kalkulasi ETA -->
+            <div class="w-full mb-10 h-6 flex items-center justify-center">
+                <p id="etaText" class="text-slate-500 text-sm font-light text-center transition-all opacity-70">
+                    Masukkan durasi alarm
+                </p>
+            </div>
+
+            <!-- Tombol Mulai -->
+            <button id="startBtn" disabled class="w-full bg-gradient-to-r from-yellow-700 via-yellow-600 to-yellow-700 hover:from-yellow-600 hover:to-yellow-500 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 disabled:border-slate-700 disabled:cursor-not-allowed border border-yellow-500/50 text-white font-semibold py-4 px-8 rounded-2xl transition-all duration-300 transform active:scale-[0.98] shadow-gold disabled:shadow-none text-lg tracking-wide">
+                Mulai Sesi
+            </button>
+        </div>
+
+        <!-- View 2: Countdown Aktif (Tersembunyi) -->
+        <div id="countdownView" class="w-full hidden flex-col items-center py-6">
+            <div class="flex items-center gap-3 mb-8">
+                <span class="relative flex h-3 w-3">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-yellow-500"></span>
+                </span>
+                <h2 class="text-xs font-semibold text-yellow-500 uppercase tracking-[0.2em]">Alarm Berjalan</h2>
+            </div>
+            
+            <div id="countdownDisplay" class="text-7xl md:text-8xl font-light tracking-tight text-white mb-6 text-center tabular-nums font-serif">
+                00:00:00
+            </div>
+            
+            <div class="bg-black/30 border border-white/5 px-6 py-3 rounded-full mb-12">
+                <p id="targetTimeDisplay" class="text-slate-400 text-sm font-light flex items-center gap-2">
+                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Selesai pada --:--
+                </p>
+            </div>
+
+            <button id="cancelBtn" class="w-full bg-transparent hover:bg-white/5 border border-slate-600 hover:border-slate-400 text-slate-300 font-medium py-4 px-8 rounded-2xl transition-all duration-300">
+                Batalkan
+            </button>
+        </div>
+    </div>
+
+    <!-- Overlay Saat Berdering -->
+    <div id="alarmOverlay" class="fixed inset-0 z-50 hidden flex-col items-center justify-center bg-alarm-active backdrop-blur-xl transition-opacity duration-500 opacity-0">
+        
+        <div class="bg-black/20 p-8 rounded-full mb-8 backdrop-blur-sm border border-white/10 animate-bounce">
+            <svg class="w-20 h-20 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+            </svg>
+        </div>
+        
+        <h2 class="text-5xl md:text-7xl font-serif text-white mb-4 tracking-wider text-center drop-shadow-2xl">
+            Waktu Habis
+        </h2>
+        <p class="text-white/70 text-lg md:text-xl mb-16 font-light">Sesi Anda telah selesai.</p>
+        
+        <button id="stopBtn" class="bg-white text-red-900 hover:bg-slate-100 font-bold text-lg md:text-xl py-4 px-12 rounded-2xl shadow-2xl transition-transform hover:scale-105 active:scale-95 tracking-wide">
+            Hentikan Alarm
+        </button>
+    </div>
+
+    <script>
+        // --- State Variables ---[cite: 1]
+        let audioCtx = null;
+        let beepInterval = null;
+        let countdownInterval = null;
+        let targetTimestamp = null;
+
+        // --- DOM Elements ---[cite: 1]
+        const liveClockEl = document.getElementById('liveClock');
+        const hourInp = document.getElementById('hourInp');
+        const minInp = document.getElementById('minInp');
+        const etaText = document.getElementById('etaText');
+        const startBtn = document.getElementById('startBtn');
+        
+        const setupView = document.getElementById('setupView');
+        const countdownView = document.getElementById('countdownView');
+        const countdownDisplay = document.getElementById('countdownDisplay');
+        const targetTimeDisplay = document.getElementById('targetTimeDisplay');
+        const cancelBtn = document.getElementById('cancelBtn');
+        
+        const overlay = document.getElementById('alarmOverlay');
+        const stopBtn = document.getElementById('stopBtn');
+
+        const padZero = (num) => String(num).padStart(2, '0'); //[cite: 1]
+
+        // --- Update Jam Real-time ---[cite: 1]
+        function updateLiveClock() {
+            const now = new Date();
+            liveClockEl.textContent = `${padZero(now.getHours())}:${padZero(now.getMinutes())}:${padZero(now.getSeconds())}`;
+        }
+        setInterval(updateLiveClock, 1000);
+        updateLiveClock();
+
+        // --- Kalkulasi Waktu Selesai (ETA) ---[cite: 1]
+        function calculateETA() {
+            let h = parseInt(hourInp.value) || 0;
+            let m = parseInt(minInp.value) || 0;
+
+            if (h === 0 && m === 0) {
+                etaText.innerHTML = "Masukkan durasi alarm";
+                etaText.className = "text-slate-500 text-sm font-light text-center transition-all opacity-70";
+                startBtn.disabled = true;
+                return;
+            }
+
+            let now = new Date();
+            now.setHours(now.getHours() + h);
+            now.setMinutes(now.getMinutes() + m);
+
+            let targetH = padZero(now.getHours());
+            let targetM = padZero(now.getMinutes());
+
+            etaText.innerHTML = `Selesai pada <span class="font-medium text-yellow-500 ml-1">${targetH}:${targetM}</span>`;
+            etaText.className = "text-slate-300 text-sm md:text-base font-light text-center transition-all";
+            startBtn.disabled = false;
+        }
+
+        // --- Validasi Input ---[cite: 1]
+        [hourInp, minInp].forEach(input => {
+            input.addEventListener('input', function() {
+                if(this.value.length > 2) this.value = this.value.slice(0, 2);
+                let val = parseInt(this.value);
+                let max = parseInt(this.getAttribute('max'));
+                if(val > max) this.value = max;
+                if(val < 0) this.value = 0;
+                
+                // Format agar selalu dua digit saat tidak fokus (opsional, tapi bagus untuk UI)
+                if(this.value !== "" && parseInt(this.value) < 10 && this.value.length === 1) {
+                    // Biarkan user mengetik, format saat blur (ditangani di bawah)
+                }
+                
+                calculateETA();
+            });
+            
+            // Format 0 di depan saat blur
+            input.addEventListener('blur', function() {
+                if(this.value !== "" && parseInt(this.value) < 10) {
+                    this.value = padZero(parseInt(this.value));
+                }
+            });
+        });
+
+        // --- Mulai Timer ---[cite: 1]
+        startBtn.addEventListener('click', () => {
+            let h = parseInt(hourInp.value) || 0;
+            let m = parseInt(minInp.value) || 0;
+
+            targetTimestamp = Date.now() + (h * 3600000) + (m * 60000);
+            
+            let targetDate = new Date(targetTimestamp);
+            targetTimeDisplay.innerHTML = `<svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Selesai pada ${padZero(targetDate.getHours())}:${padZero(targetDate.getMinutes())}`;
+
+            // Ganti UI
+            setupView.classList.add('hidden');
+            countdownView.classList.remove('hidden');
+            countdownView.classList.add('flex');
+
+            // Inisialisasi Audio
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            updateCountdown(); 
+            countdownInterval = setInterval(updateCountdown, 100); 
+        });
+
+        // --- Update Hitung Mundur ---[cite: 1]
+        function updateCountdown() {
+            let remainingMs = targetTimestamp - Date.now();
+
+            if (remainingMs <= 0) {
+                clearInterval(countdownInterval);
+                countdownDisplay.textContent = "00:00:00";
+                triggerAlarm();
+                return;
+            }
+
+            let totalSeconds = Math.floor(remainingMs / 1000);
+            let hours = Math.floor(totalSeconds / 3600);
+            let minutes = Math.floor((totalSeconds % 3600) / 60);
+            let seconds = totalSeconds % 60;
+
+            countdownDisplay.textContent = `${padZero(hours)}:${padZero(minutes)}:${padZero(seconds)}`;
+        }
+
+        // --- Batalkan Timer ---[cite: 1]
+        cancelBtn.addEventListener('click', resetApp);
+
+        function resetApp() {
+            clearInterval(countdownInterval);
+            clearInterval(beepInterval);
+            
+            countdownView.classList.add('hidden');
+            countdownView.classList.remove('flex');
+            setupView.classList.remove('hidden');
+            
+            hourInp.value = '';
+            minInp.value = '';
+            calculateETA(); 
+        }
+
+        // --- Alarm Berdering ---[cite: 1]
+        function triggerAlarm() {
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            setTimeout(() => overlay.classList.remove('opacity-0'), 50);
+
+            playBeep();
+            beepInterval = setInterval(() => {
+                playBeep();
+                setTimeout(playBeep, 200); 
+            }, 1000);
+        }
+
+        // --- Suara Bip ---[cite: 1]
+        function playBeep() {
+            if(!audioCtx) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const oscillator = audioCtx.createOscillator();
+            const gain
